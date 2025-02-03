@@ -1,0 +1,1 @@
+command = "python3 recursion_counter.py {filename}"

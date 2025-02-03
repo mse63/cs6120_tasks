@@ -1,0 +1,17 @@
+{
+  "functions": [
+    {
+      "name": "main",
+      "instrs": [
+        {
+          "op": "call",
+          "args": [],
+          "funcs": [
+            "main"
+          ]
+        }
+      ],
+      "args": []
+    }
+  ]
+}
