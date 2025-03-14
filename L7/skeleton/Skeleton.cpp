@@ -1,0 +1,42 @@
+#include "llvm/IR/IRBuilder.h"
+#include "llvm/IR/Module.h"
+#include "llvm/Pass.h"
+#include "llvm/Passes/PassBuilder.h"
+#include "llvm/Passes/PassPlugin.h"
+#include "llvm/Support/raw_ostream.h"
+#include "llvm/Transforms/Utils/BasicBlockUtils.h"
+using namespace llvm;
+
+namespace {
+
+struct SkeletonPass : public PassInfoMixin<SkeletonPass> {
+  PreservedAnalyses run(Module &M, ModuleAnalysisManager &AM) {
+    for (auto &F : M) {
+      if (!F.isDeclaration()) { // Ignore function declarations
+        IRBuilder<> builder(&*F.getEntryBlock().getFirstInsertionPt());
+        Type *i8PtrType = PointerType::get(Type::getInt8Ty(M.getContext()), 0);
+        FunctionCallee printFunc = M.getOrInsertFunction(
+            "puts", FunctionType::get(builder.getInt32Ty(), i8PtrType, true));
+
+        Value *funcName = builder.CreateGlobalStringPtr(F.getName());
+        builder.CreateCall(printFunc, funcName);
+      }
+    }
+    return PreservedAnalyses::none();
+  }
+};
+
+} // namespace
+
+extern "C" LLVM_ATTRIBUTE_WEAK ::llvm::PassPluginLibraryInfo
+llvmGetPassPluginInfo() {
+  return {.APIVersion = LLVM_PLUGIN_API_VERSION,
+          .PluginName = "Skeleton pass",
+          .PluginVersion = "v0.1",
+          .RegisterPassBuilderCallbacks = [](PassBuilder &PB) {
+            PB.registerPipelineStartEPCallback(
+                [](ModulePassManager &MPM, OptimizationLevel Level) {
+                  MPM.addPass(SkeletonPass());
+                });
+          }};
+}
